@@ -1,3 +1,5 @@
+name: Release Build
+
 on:
   push:
     tags: 
@@ -10,41 +12,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       
-#      - name: Load Cache
-#        uses: actions/cache@v2
-#        with:
-#          path: .\venv
-#          key: ${{ hashFiles('**/requirements.txt') }}
+      - name: Load Cache
+        uses: actions/cache@v2
+        with:
+          path: ./venv
+          key: ${{ hashFiles('**/requirements.txt') }}
       
-      - name: Check Out Tag-Name
-        id: checkout-tagname
-        shell: "python3 {0}"
-        run: |
-          import os
-          import re
-          ref = os.getenv('GITHUB_REF', '')
-          match = re.search(r'refs\/tags\/(.*)', ref)
-          tag_name = match[1] if match is not None else ''
-          print('::set-output name=tag_name::'+tag_name)
-
       - name: Build
-        env: 
-          tag_name: ${{ steps.checkout-tagname.outputs.tag_name }}
         run: |
           tzutil /s "China Standard Time"
           python -m pip install wheel setuptools virtualenv
           python -m virtualenv venv
           venv\Scripts\activate
           pip install -r requirements.txt
-
-          pyinstaller --noconfirm -i icon.ico -c -F -n LittleServer-${{ env.tag_name }} LittleServerMain.py
+          pyinstaller build.spec
           copy config.exam.yml dist\config.yml
 
       - name: Print Hashes
-        env: 
-          tag_name: ${{ steps.checkout-tagname.outputs.tag_name }}
+        shell: "python3 {0}"
         run: |
-          python ci\hash_tool.py dist\LittleServer-${{ env.tag_name }}.exe
+          import os
+          import hashlib
+          directory = 'dist'
+          def hash(fileToBeHashed, hashobj):
+              with open(fileToBeHashed, 'rb') as f:
+                  hashobj.update(f.read())
+                  return hashobj.hexdigest()
+          def show_hash(f, hashobj, indent='    '):
+              print(hashobj.name + ': ' + hash(f, hashobj) + '\n')
+          for f in os.listdir(directory):
+              sf = os.path.join(directory, f)
+              if os.path.isfile(sf):
+                  print('Hashes for ' + sf)
+                  show_hash(sf, hashlib.md5())
+                  show_hash(sf, hashlib.sha1())
+                  show_hash(sf, hashlib.sha256())
       
       - name: Upload To Github Release
         uses: xresloader/upload-to-github-release@98857380fc282f8075a62c6af230fe92bd93aff8

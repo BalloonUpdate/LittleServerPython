@@ -1,11 +1,21 @@
 import ctypes
+import json
 import sys
 from http import HTTPStatus
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import yaml
 from file import File
 
-version_text = '1.1'
+
+def getMetadata():
+    temp = File(getattr(sys, '_MEIPASS', ''))
+    return json.loads(temp('meta.json').content)
+
+
+version = getMetadata()['version']
+commit = getMetadata()['commit']
+compile_time = getMetadata()['compile_time']
+inDev = not getattr(sys, 'frozen', False)
 
 
 class UpdaterHttpRequestHandler(SimpleHTTPRequestHandler):
@@ -57,10 +67,10 @@ def check():
 
 if __name__ == '__main__':
     try:
-        print('正在启动文件更新助手服务端单文件版v'+version_text+' (开源地址: https://github.com/updater-for-minecraft)')
+        print('正在启动文件更新助手服务端单文件版v'+version+' (开源地址: https://github.com/updater-for-minecraft)')
 
         try:
-            ctypes.windll.kernel32.SetConsoleTitleW("文件更新助手服务端 "+version_text)
+            ctypes.windll.kernel32.SetConsoleTitleW("文件更新助手服务端 "+version)
         except:
             pass
 
