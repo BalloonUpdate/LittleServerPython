@@ -1,10 +1,13 @@
 import ctypes
 import json
 import sys
+import time
 from http import HTTPStatus
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import yaml
 from file import File
+
+inDev = not getattr(sys, 'frozen', False)
 
 
 def getMetadata():
@@ -12,18 +15,15 @@ def getMetadata():
     return json.loads(temp('meta.json').content)
 
 
-version = getMetadata()['version']
-commit = getMetadata()['commit']
-compile_time = getMetadata()['compile_time']
-inDev = not getattr(sys, 'frozen', False)
+version = getMetadata()['version'] if not inDev else '0.0.0'
+commit = getMetadata()['commit'] if not inDev else ''
+compile_time = getMetadata()['compile_time'] if not inDev else ''
 
 
 class UpdaterHttpRequestHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/index.yml':
             self.respondWithContent(yaml.safe_dump({
-                'version': "3.0",
-                'server_type': "little",
                 'update': 'res',
                 **indexYaml
             }, sort_keys=False))
@@ -84,7 +84,7 @@ if __name__ == '__main__':
         address = configObject['address']
         port = configObject['port']
 
-        indexYaml = {'mode': configObject['mode'], 'paths': configObject['paths']}
+        indexYaml = {**configObject}
 
         print('文件更新助手服务端已经启动!')
         print('API地址: http://'+('127.0.0.1' if address == '0.0.0.0' else address)+':'+str(port)+'/index.yml')
